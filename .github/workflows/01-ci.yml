@@ -1,12 +1,10 @@
 name: 01 - CI
 
 on:
-  # Trigger the workflow on push to main branch
   push:
     branches:
       - main
-  
-  # Manual trigger for the workflow
+
   workflow_dispatch:
 
 
@@ -16,7 +14,9 @@ jobs:
   # Backend Tests
   # =========================================================
   backend-test:
+
     name: Test ${{ matrix.service }}
+
     runs-on: ubuntu-latest
 
     strategy:
@@ -44,7 +44,9 @@ jobs:
             database: enrollments
             port: 5437
 
+
     services:
+
       postgres:
         image: postgres:16
 
@@ -62,10 +64,13 @@ jobs:
           --health-timeout=5s
           --health-retries=10
 
+
     env:
+
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: ${{ matrix.database }}
+
       POSTGRES_HOST: localhost
       POSTGRES_PORT: ${{ matrix.port }}
 
@@ -80,15 +85,18 @@ jobs:
       AZURE_STORAGE_CONNECTION_STRING: ""
       AZURE_STORAGE_CONTAINER_NAME: ""
 
+
     steps:
 
       - name: Checkout repository
         uses: actions/checkout@v4
 
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
 
       - name: Install dependencies
         working-directory: ${{ matrix.service }}
@@ -96,31 +104,40 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+
       - name: Run tests
         working-directory: ${{ matrix.service }}
         run: |
           pytest -v
 
 
+
   # =========================================================
   # Build and Push Docker Images
   # =========================================================
+
   build-and-push:
+
     name: Build and Push ${{ matrix.image }}
+
     runs-on: ubuntu-latest
 
-    # All backend tests must pass before this job starts
+
     needs:
       - backend-test
 
-    # Build and push when code is pushed to main or manually triggered
+
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
+
     strategy:
+
       fail-fast: false
 
       matrix:
+
         include:
+
           - service: frontend
             image: koalatech-frontend
 
@@ -139,28 +156,47 @@ jobs:
           - service: enrollment-service
             image: koalatech-enrollment-service
 
+
+
     steps:
+
 
       - name: Checkout repository
         uses: actions/checkout@v4
 
+
+
       - name: Login to Azure
         uses: azure/login@v2
+
         with:
+
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+
+
       - name: Login to Azure Container Registry
+
         run: |
+
           az acr login --name ${{ vars.ACR_NAME }}
 
+
+
       - name: Build Docker image
+
         run: |
+
           docker build \
             --platform linux/amd64 \
-            -t ${{ vars.ACR_LOGIN_SERVER }}/${{ matrix.image }}:${{ github.sha }} \
+            -t ${{ vars.ACR_NAME }}.azurecr.io/${{ matrix.image }}:${{ github.sha }} \
             ./${{ matrix.service }}
 
+
+
       - name: Push Docker image with commit SHA
+
         run: |
+
           docker push \
-            ${{ vars.ACR_LOGIN_SERVER }}/${{ matrix.image }}:${{ github.sha }}
+            ${{ vars.ACR_NAME }}.azurecr.io/${{ matrix.image }}:${{ github.sha }}
