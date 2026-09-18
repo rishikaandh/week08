@@ -9,32 +9,46 @@ on:
     branches:
       - main
 
+
 jobs:
+
   smoke-test:
+
     name: Staging Smoke Test
+
     runs-on: ubuntu-latest
+
 
     if: >
       ${{ github.event.workflow_run.conclusion == 'success' }}
 
+
     environment:
       name: staging
 
+
     steps:
+
+
       - name: Login to Azure
         uses: azure/login@v3
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+
+
       - name: Get AKS credentials
         run: |
           az aks get-credentials \
             --resource-group ${{ vars.AKS_RESOURCE_GROUP }} \
-            --name ${{ vars.AKS_CLUSTER_NAME }} \
+            --name ${{ vars.AKS_NAME }} \
             --overwrite-existing
+
+
 
       - name: Wait for staging frontend IP
         run: |
+
           for i in {1..30}; do
 
             FRONTEND_IP=$(kubectl get service frontend \
@@ -49,10 +63,15 @@ jobs:
             echo "Waiting for staging frontend IP..."
 
             sleep 10
+
           done
 
+
           echo "Unable to find staging frontend IP."
+
           exit 1
+
+
 
       - name: Test frontend
         run: |
