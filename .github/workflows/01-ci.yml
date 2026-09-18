@@ -189,7 +189,7 @@ jobs:
 
           docker build \
             --platform linux/amd64 \
-            -t ${{ vars.ACR_NAME }}.azurecr.io/${{ matrix.image }}:${{ github.sha }} \
+            -t ${{ vars.ACR_NAME }}/${{ matrix.image }}:${{ github.sha }} \
             ./${{ matrix.service }}
 
 
@@ -199,4 +199,4 @@ jobs:
         run: |
 
           docker push \
-            ${{ vars.ACR_NAME }}.azurecr.io/${{ matrix.image }}:${{ github.sha }}
+            ${{ vars.ACR_NAME }}/${{ matrix.image }}:${{ github.sha }}
